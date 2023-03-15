@@ -60,6 +60,10 @@ class SKPole:
         The equation in this method is based on Equation (2) in the
         referenced paper.
 
+        Args:
+            r (3x1 numpy matrix of floats)
+                Position vector of satellite
+
         Returns:
             a_1 (3x1 numpy matrix of floats)
         """
@@ -75,6 +79,9 @@ class SKPole:
         The equation in this method is based on Equation (3) in the
         referenced paper.
 
+        Args:
+            r (3x1 numpy matrix of floats)
+                Position vector of satellite
         Returns:
             a_2 (3x1 numpy matrix of floats)
         """
@@ -153,6 +160,10 @@ class SKPole:
 
 
         Args:
+            alpha (float)
+                The angle away from the pole of the desired lateral differential
+                acceleration (in radians)
+
             d (float)
                 The distance between the telescope and starshade
 
@@ -231,6 +242,14 @@ class SKPole:
 
         Get the lateral differential acceleration magnitude of the
         telescope-starshade system.
+
+        Args:
+            alpha (float)
+                The angle away from the pole of the desired lateral differential
+                acceleration (in radians)
+
+            d (float)
+                The distance between the telescope and starshade
 
         Returns:
             d_a_l (float)
