@@ -33,14 +33,6 @@ class SKPole:
     #
     # Attribute mu: the mass parameter of the dynamical system
     # Invariant: mu is a float
-    #
-    # Attribute psi: the angle made between the vectors to the
-    # telescope from the Sun and the Earth
-    # Invariant: psi is a float
-    #
-    # Attribute theta_1: the angle made between the vectors from the
-    # telescope to the Sun and the Starshade
-    # Invariant: theta_1 is a float
 
     def __init__(self, r_t, mu):
         """
@@ -123,9 +115,10 @@ class SKPole:
         """
         a_1 = self.calc_a_1(self.r_1)
         a_2 = self.calc_a_2(self.r_2)
+        psi = self.calc_psi()
 
-        numerator = np.sin(2 * self.psi) * np.divide(a_2, self.r_2)
-        denominator = np.divide(a_1, self.r_1) + np.cos(2 * self.psi) * \
+        numerator = np.sin(2 * psi) * np.divide(a_2, self.r_2)
+        denominator = np.divide(a_1, self.r_1) + np.cos(2 * psi) * \
                       np.divide(a_2, self.r_2)
 
         theta_1 = .5 * np.arctan(numerator, denominator)
@@ -142,7 +135,7 @@ class SKPole:
         Returns:
             r_p (3x1 numpy matrix of floats)
         """
-        rotation_matrix = self.calc_rotation_matrix(self.theta_1, self.calc_orthogonal_vector())
+        rotation_matrix = self.calc_rotation_matrix(self.calc_theta_1(), self.calc_orthogonal_vector())
         scipy_rotation = R.from_matrix(rotation_matrix)
 
         r_1_hat = np.divide(self.r_1, np.norm(self.r_1))
@@ -239,7 +232,7 @@ class SKPole:
         """ Get d_a_l
 
         Get the lateral differential acceleration magnitude of the
-        telescope-starshade system
+        telescope-starshade system.
 
         Returns:
             d_a_l (float)
