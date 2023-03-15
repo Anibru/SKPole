@@ -50,8 +50,6 @@ class SKPole:
         self.r_1 = (r_t + (mu * self.i_hat))
         self.r_2 = (r_t + ((mu - 1) * self.i_hat))
         self.mu = mu
-        self.psi = self.calc_psi()
-        self.theta_1 = self.calc_theta_1()
 
     def calc_a_1(self, r):
         """ Calculate a_1
