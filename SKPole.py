@@ -185,7 +185,6 @@ class SKPole:
 
         # Eq. (6)
         d_a_l = np.linalg.norm(d_a - np.matmul(np.dot(d_a, r_rel_hat), r_rel_hat))
-
         return d_a_l
 
     def calc_rotation_matrix(self, theta, u):
@@ -227,21 +226,22 @@ class SKPole:
         return u
 
     def get_pole(self):
-        """ Get r_p_hat
+        """ Get r_p
 
         Get the unit vector from the telescope to the pole.
 
         Returns:
-            r_p_hat ((3x1 numpy matrix of floats)
+            r_p ((3x1 numpy matrix of floats)
         """
         return self.calc_r_p()
 
     def get_d_a_l(self, alpha, d):
         """ Get d_a_l
 
-        Get the unit vector from the telescope to the pole.
+        Get the lateral differential acceleration magnitude of the
+        telescope-starshade system
 
         Returns:
-            r_p_hat ((3x1 numpy matrix of floats)
+            d_a_l (float)
         """
         return self.calc_d_a_l(alpha, d)
