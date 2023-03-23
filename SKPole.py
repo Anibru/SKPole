@@ -17,19 +17,19 @@ class SKPole:
 
     # ATTRIBUTES
     # Attribute i_hat, j_hat, k_hat: unit vectors in R^3
-    # Invariant: each unit vector is a 3x1 numpy matrix
+    # Invariant: each unit vector is a 3x1 numpy array
     #
     # Attribute r_t: the position vector (x, y, z) of the telescope
     # from the origin.
-    # Invariant: r_t is a 3x1 numpy matrix with floats as entries
+    # Invariant: r_t is a 3x1 numpy array with floats as entries
     #
     # Attribute r_1: the position vector (x, y, z) to the telescope
     # from the Sun.
-    # Invariant: r_1 is a 3x1 numpy matrix with floats as entries
+    # Invariant: r_1 is a 3x1 numpy array with floats as entries
     #
     # Attribute r_2: the position vector (x, y, z) to the telescope
     # from the Earth.
-    # Invariant: r_2 is a 3x1 numpy matrix with floats as entries
+    # Invariant: r_2 is a 3x1 numpy array with floats as entries
     #
     # Attribute mu: the mass parameter of the dynamical system
     # Invariant: mu is a float
@@ -37,19 +37,23 @@ class SKPole:
     def __init__(self, r_t, mu):
         """
         Args:
-            r (3x1 numpy matrix with floats as entries)
+            r (3x1 numpy array with floats as entries)
                 The position vector of the telescope
 
             mu (float)
                 The mass parameter of the dynamical system
         """
-        self.i_hat = np.matrix([1, 0, 0])
-        self.j_hat = np.matrix([0, 1, 0])
-        self.k_hat = np.matrix([0, 0, 1])
+        self.i_hat = np.array([1, 0, 0])
+        self.j_hat = np.array([0, 1, 0])
+        self.k_hat = np.array([0, 0, 1])
         self.r_t = r_t
         self.r_1 = (r_t + (mu * self.i_hat))
         self.r_2 = (r_t + ((mu - 1) * self.i_hat))
         self.mu = mu
+
+# =============================================================================
+# Internal Mathematical Methods
+# =============================================================================
 
     def calc_a_1(self, r):
         """ Calculate a_1
@@ -61,11 +65,11 @@ class SKPole:
         referenced paper.
 
         Args:
-            r (3x1 numpy matrix of floats)
+            r (3x1 numpy array of floats)
                 Position vector of satellite
 
         Returns:
-            a_1 (3x1 numpy matrix of floats)
+            a_1 (3x1 numpy array of floats)
         """
         a_1 = np.divide((self.mu - 1) * r, np.power(np.linalg.norm(r), 3))
         return a_1
@@ -80,10 +84,11 @@ class SKPole:
         referenced paper.
 
         Args:
-            r (3x1 numpy matrix of floats)
+            r (3x1 numpy array of floats)
                 Position vector of satellite
+
         Returns:
-            a_2 (3x1 numpy matrix of floats)
+            a_2 (3x1 numpy array of floats)
         """
         a_2 = np.divide(-1 * self.mu * r, np.power(np.linalg.norm(r), 3))
         return a_2
@@ -101,8 +106,10 @@ class SKPole:
             psi (float)
                 (In radians)
         """
-        psi = np.arccos(np.divide(np.power(self.r_1, 2) + np.power(self.r_2) - 1,
-                                  2 * np.matmul(self.r_1, self.r_2)))
+        r_1_norm = np.linalg.norm(self.r_1)
+        r_2_norm = np.linalg.norm(self.r_2)
+        psi = np.arccos((np.power(r_1_norm, 2) + np.power(r_2_norm, 2) - 1) /
+                        (2 * r_1_norm * r_2_norm ))
         return psi
 
     def calc_theta_1(self):
@@ -118,15 +125,17 @@ class SKPole:
             theta_1 (float)
                 (In radians)
         """
-        a_1 = self.calc_a_1(self.r_1)
-        a_2 = self.calc_a_2(self.r_2)
+        r_1_norm = np.linalg.norm(self.r_1)
+        r_2_norm = np.linalg.norm(self.r_2)
+        a_1_norm = np.linalg.norm(self.calc_a_1(self.r_1))
+        a_2_norm = np.linalg.norm(self.calc_a_2(self.r_2))
         psi = self.calc_psi()
 
-        numerator = np.sin(2 * psi) * np.divide(a_2, self.r_2)
-        denominator = np.divide(a_1, self.r_1) + np.cos(2 * psi) * \
-                      np.divide(a_2, self.r_2)
+        numerator = np.sin(2 * psi) * (a_2_norm / r_2_norm)
+        denominator = (a_1_norm / r_1_norm) + np.cos(2 * psi) * \
+                      (a_2_norm / r_2_norm)
 
-        theta_1 = .5 * np.arctan(numerator, denominator)
+        theta_1 = .5 * np.arctan(numerator / denominator)
         return theta_1
 
     def calc_r_p(self):
@@ -138,12 +147,12 @@ class SKPole:
         page 7 of the referenced paper
 
         Returns:
-            r_p (3x1 numpy matrix of floats)
+            r_p (3x1 numpy array of floats)
         """
         rotation_matrix = self.calc_rotation_matrix(self.calc_theta_1(), self.calc_orthogonal_vector())
         scipy_rotation = R.from_matrix(rotation_matrix)
 
-        r_1_hat = np.divide(self.r_1, np.norm(self.r_1))
+        r_1_hat = np.divide(self.r_1, np.linalg.norm(self.r_1))
 
         r_p = scipy_rotation.apply(r_1_hat)
         return r_p
@@ -170,23 +179,28 @@ class SKPole:
         Returns:
             d_a_l (float)
         """
+        r_p = self.calc_r_p()
         rotation_matrix = self.calc_rotation_matrix(alpha, self.calc_orthogonal_vector())
         scipy_rotation = R.from_matrix(rotation_matrix)
-        r_rel_hat = scipy_rotation.apply(self.r_p)
+        r_rel_hat = scipy_rotation.apply(r_p)
 
         r_rel = d * r_rel_hat
         r_s = self.r_t + r_rel
         a_s_1 = self.calc_a_1(r_s)
         a_s_2 = self.calc_a_2(r_s)
 
+        a_t_1 = self.calc_a_1(self.r_1)
+        a_t_2 = self.calc_a_2(self.r_2)
+
         a_s = a_s_1 + a_s_2
-        a_t = self.a_1 + self.a_2
+        a_t = a_t_1 + a_t_2
 
         # Eq. (4)
         d_a = a_s - a_t
 
         # Eq. (6)
-        d_a_l = np.linalg.norm(d_a - np.matmul(np.dot(d_a, r_rel_hat), r_rel_hat))
+        d_a_l = np.linalg.norm(d_a - (np.dot(d_a, r_rel_hat) * r_rel_hat))
+
         return d_a_l
 
     def calc_rotation_matrix(self, theta, u):
@@ -201,16 +215,19 @@ class SKPole:
             theta (float)
                 theta is the angle of rotation in radians
 
-            u (3x1 numpy matrix)
+            u (3x1 numpy array)
                 u is the axis of rotation
+
+        Returns:
+            rotation_matrix (3x3 numpy matrix)
         """
         I = np.identity(3)
 
         # Note that the cross product of vector u and -1 * I is the cross product
-        # matrix of vector u
-        rotation_matrix = (np.cos(theta) * I) + \
+        # array of vector u
+        rotation_matrix = np.matrix((np.cos(theta) * I) + \
                           (np.sin(theta) * np.cross(u, -1 * I)) + \
-                          (1 - np.cos(theta) * np.outer(u, u))
+                          (1 - np.cos(theta) * np.outer(u, u)))
 
         return rotation_matrix
 
@@ -222,10 +239,14 @@ class SKPole:
         be orthogonal to r_p.
 
         Returns:
-            u (3x1 numpy matrix)
+            u (3x1 numpy array)
         """
-        u = np.matrix([0, (-1 * self.r_t[2] * self.j_hat), (self.r_t[1] * self.k_hat)])
+        u = np.array([0, -1 * self.r_t[2], self.r_t[1]])
         return u
+
+# =============================================================================
+# User Getter Functions
+# =============================================================================
 
     def get_pole(self):
         """ Get r_p
@@ -233,7 +254,7 @@ class SKPole:
         Get the unit vector from the telescope to the pole.
 
         Returns:
-            r_p ((3x1 numpy matrix of floats)
+            r_p ((3x1 numpy array of floats)
         """
         return self.calc_r_p()
 
