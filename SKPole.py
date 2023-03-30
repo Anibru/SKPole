@@ -37,7 +37,7 @@ class SKPole:
     def __init__(self, r_t, mu):
         """
         Args:
-            r (3x1 numpy array with floats as entries)
+            r_t (3x1 numpy array with floats as entries)
                 The position vector of the telescope
 
             mu (float)
@@ -71,7 +71,8 @@ class SKPole:
         Returns:
             a_1 (3x1 numpy array of floats)
         """
-        a_1 = np.divide((self.mu - 1) * r, np.power(np.linalg.norm(r), 3))
+        a_1 = np.divide((self.mu - 1) * (r + (self.mu * self.i_hat)),
+                        np.power(np.linalg.norm(r + (self.mu * self.i_hat)), 3))
         return a_1
 
     def calc_a_2(self, r):
@@ -90,7 +91,8 @@ class SKPole:
         Returns:
             a_2 (3x1 numpy array of floats)
         """
-        a_2 = np.divide(-1 * self.mu * r, np.power(np.linalg.norm(r), 3))
+        a_2 = np.divide(-1 * self.mu * (r + ((self.mu - 1) * self.i_hat)),
+                        np.power(np.linalg.norm(r + ((self.mu - 1) * self.i_hat)), 3))
         return a_2
 
     def calc_psi(self):
@@ -109,7 +111,7 @@ class SKPole:
         r_1_norm = np.linalg.norm(self.r_1)
         r_2_norm = np.linalg.norm(self.r_2)
         psi = np.arccos((np.power(r_1_norm, 2) + np.power(r_2_norm, 2) - 1) /
-                        (2 * r_1_norm * r_2_norm ))
+                        (2 * r_1_norm * r_2_norm))
         return psi
 
     def calc_theta_1(self):
@@ -127,8 +129,8 @@ class SKPole:
         """
         r_1_norm = np.linalg.norm(self.r_1)
         r_2_norm = np.linalg.norm(self.r_2)
-        a_1_norm = np.linalg.norm(self.calc_a_1(self.r_1))
-        a_2_norm = np.linalg.norm(self.calc_a_2(self.r_2))
+        a_1_norm = np.linalg.norm(self.calc_a_1(self.r_t))
+        a_2_norm = np.linalg.norm(self.calc_a_2(self.r_t))
         psi = self.calc_psi()
 
         numerator = np.sin(2 * psi) * (a_2_norm / r_2_norm)
@@ -150,11 +152,10 @@ class SKPole:
             r_p (3x1 numpy array of floats)
         """
         rotation_matrix = self.calc_rotation_matrix(self.calc_theta_1(), self.calc_orthogonal_vector())
-        scipy_rotation = R.from_matrix(rotation_matrix)
 
-        r_1_hat = np.divide(self.r_1, np.linalg.norm(self.r_1))
+        r_1_hat = self.r_1 / np.linalg.norm(self.r_1)
+        r_p = np.dot(rotation_matrix, r_1_hat)
 
-        r_p = scipy_rotation.apply(r_1_hat)
         return r_p
 
     def calc_d_a_l(self, alpha, d):
@@ -181,16 +182,15 @@ class SKPole:
         """
         r_p = self.calc_r_p()
         rotation_matrix = self.calc_rotation_matrix(alpha, self.calc_orthogonal_vector())
-        scipy_rotation = R.from_matrix(rotation_matrix)
-        r_rel_hat = scipy_rotation.apply(r_p)
+        r_rel_hat = np.matmul(rotation_matrix, r_p)
 
         r_rel = d * r_rel_hat
         r_s = self.r_t + r_rel
         a_s_1 = self.calc_a_1(r_s)
         a_s_2 = self.calc_a_2(r_s)
 
-        a_t_1 = self.calc_a_1(self.r_1)
-        a_t_2 = self.calc_a_2(self.r_2)
+        a_t_1 = self.calc_a_1(self.r_t)
+        a_t_2 = self.calc_a_2(self.r_t)
 
         a_s = a_s_1 + a_s_2
         a_t = a_t_1 + a_t_2
@@ -222,12 +222,16 @@ class SKPole:
             rotation_matrix (3x3 numpy matrix)
         """
         I = np.identity(3)
+        if np.linalg.norm(u) != 1:
+            u_hat = np.divide(u, np.linalg.norm(u))
+        else:
+            u_hat = u
 
         # Note that the cross product of vector u and -1 * I is the cross product
-        # array of vector u
-        rotation_matrix = np.matrix((np.cos(theta) * I) + \
-                          (np.sin(theta) * np.cross(u, -1 * I)) + \
-                          (1 - np.cos(theta) * np.outer(u, u)))
+        # array of vector u_hat
+        rotation_matrix = np.array((np.cos(theta) * I) + \
+                          (np.sin(theta) * np.cross(u_hat, -1 * I)) + \
+                          (1 - np.cos(theta)) * np.outer(u_hat, u_hat))
 
         return rotation_matrix
 
@@ -241,6 +245,8 @@ class SKPole:
         Returns:
             u (3x1 numpy array)
         """
+        # FIX THIS, Creates 0 vector if r_t only has an x value, need more general
+        # solution. Maybe cross product of ambiguous vector?
         u = np.array([0, -1 * self.r_t[2], self.r_t[1]])
         return u
 
